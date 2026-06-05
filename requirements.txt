@@ -1,0 +1,7 @@
+openai
+chromadb
+langgraph
+langchain
+requests
+typing_extensions
+onnxruntime
