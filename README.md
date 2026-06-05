@@ -1,6 +1,6 @@
 # Educational Multi-Agent System
 
-Sistema multi-agente sviluppato per la tesi magistrale.
+Sistema multi-agente sviluppato per la tesi triennale.
 
 ## Tecnologie
 
