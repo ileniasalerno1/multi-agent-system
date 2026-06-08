@@ -6,7 +6,9 @@ import os
 from langgraph.graph import StateGraph
 from typing import TypedDict
 from dotenv import load_dotenv
-from recommender.ncf_recommender import NCFRecommender
+from recommender.simulated_ncf import SimulatedNCF
+
+recommender = SimulatedNCF()
 
 load_dotenv()
 
@@ -25,7 +27,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SERP_API_KEY = os.getenv("SERP_API_KEY")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
-recommender = NCFRecommender()
+recommender = SimulatedNCF()
 
 print("=== SISTEMA MULTI-AGENTE CON RAG + LANGGRAPH ===")
 
@@ -359,14 +361,17 @@ def kb_agent(query):
     # 🔹 recommendation NCF - Marta
     # =========================
 
-def recommendation_agent(user_id=0):
+def recommendation_agent(query):
 
-    print(">>> NCF RECOMMENDER AGENT <<<")
+    print(">>> SIMULATED NCF AGENT <<<")
 
     recs = recommender.recommend(
-        user_id=user_id,
+        query=query,
         top_k=3
     )
+
+    print("\n>>> RECOMMENDATIONS:")
+    print(recs)
 
     return recs
 
@@ -410,8 +415,17 @@ def critic_agent(web_results, kb_results, intent, recommendations):
         - usa SOLO risultati forniti
         - NON inventare informazioni
 
-        Seleziona le risorse più utili per bambini 3-6 anni.
-        Spiega brevemente perché sono utili.
+        Analizza le risorse recuperate.
+
+        Se la richiesta riguarda il contesto educativo,
+        seleziona le risorse più pertinenti per insegnamento,
+        apprendimento e sviluppo delle competenze.
+
+        Se la richiesta riguarda formazione o lavoro,
+        seleziona le risorse più pertinenti per crescita professionale,
+        formazione tecnica e sviluppo delle competenze.
+
+        Spiega brevemente perché le risorse sono rilevanti.
         """
 
     response = client.chat.completions.create(
@@ -489,7 +503,7 @@ def recommendation_node(state):
 
     return {
         "recommendations": recommendation_agent(
-            user_id=0
+            state["user_input"]
         )
     }
 
