@@ -1,6 +1,5 @@
 import requests
 from openai import OpenAI
-import chromadb
 import os
 
 from langgraph.graph import StateGraph
@@ -9,15 +8,9 @@ from dotenv import load_dotenv
 from recommender.simulated_ncf import SimulatedNCF
 
 recommender = SimulatedNCF()
+DEBUG = False
 
 load_dotenv()
-
-print("""
-=====================================
- MULTI-AGENT EDUCATIONAL SYSTEM
- RAG + LANGGRAPH + CHROMADB
-=====================================
-""")
 
 # =========================
 # 🔹 API KEYS
@@ -27,70 +20,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SERP_API_KEY = os.getenv("SERP_API_KEY")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
-recommender = SimulatedNCF()
 
-print("=== SISTEMA MULTI-AGENTE CON RAG + LANGGRAPH ===")
-
-# =========================
-# 🔹 CHROMA DB (RAG)
-# =========================
-
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma_client.get_or_create_collection(
-    name="knowledge_base"
-)
-
-if collection.count() == 0:
-    collection.add(
-
-         documents=[
-
-        # ITALIANO - SCOLASTICO
-        "Gioco del telefono senza fili per sviluppare il linguaggio nei bambini",
-        "Attività di lettura condivisa per bambini della scuola dell'infanzia",
-        "Carte illustrate per aumentare il vocabolario nei bambini",
-
-        # INGLESE - SCOLASTICO
-        "Storytelling activities for preschool language development",
-        "Interactive games for improving children's vocabulary",
-
-        # SPAGNOLO - SCOLASTICO
-        "Actividades lingüísticas para niños en edad preescolar",
-        "Juegos educativos para mejorar la comprensión verbal",
-
-        # PIATTAFORMA
-        "La piattaforma consente agli insegnanti di creare attività personalizzate",
-        "Users can upload educational resources directly into the platform",
-
-        # ALTRO
-        "Suggerimenti generali per migliorare la comunicazione nei bambini"
-
-    ],
-
-    metadatas=[
-
-        {"ambito": "scolastico", "lingua": "it"},
-        {"ambito": "scolastico", "lingua": "it"},
-        {"ambito": "scolastico", "lingua": "it"},
-
-        {"ambito": "scolastico", "lingua": "en"},
-        {"ambito": "scolastico", "lingua": "en"},
-
-        {"ambito": "scolastico", "lingua": "es"},
-        {"ambito": "scolastico", "lingua": "es"},
-
-        {"ambito": "piattaforma", "lingua": "it"},
-        {"ambito": "piattaforma", "lingua": "en"},
-
-        {"ambito": "altro", "lingua": "it"}
-
-    ],
-
-    ids=[
-        "1","2","3","4","5",
-        "6","7","8","9","10"
-    ]
-)
+print("=== SISTEMA MULTI-AGENTE ===")
 
 # =========================
 # 🔹 AGENTE 1: QUERY
@@ -141,12 +72,9 @@ def intent_agent(user_input, history):
     - WEB_SEARCH
     → richieste di ricerca sul web
 
-    - KB_SEARCH
-    → domande sulla piattaforma o informazioni interne
-
     - BOTH
-    → richieste educative che richiedono sia web che knowledge base
-
+    → richieste educative gestite tramite il sistema di raccomandazione e, se necessario, approfondite tramite ricerca web
+    
     - CHAT
     → semplici saluti o conversazione generica
 
@@ -170,11 +98,23 @@ def intent_agent(user_input, history):
     "risorse educative per bambini"
     → BOTH
 
-    "come funziona la piattaforma"
-    → KB_SEARCH
-
     "ricerca siti educativi"
     → WEB_SEARCH
+
+    IMPORTANTE:
+
+    Richieste contenenti linguaggi di programmazione
+    o termini informatici come:
+
+    Python
+    Java
+    C++
+    Programming
+    Coding
+    Software Development
+    Computer Science
+
+    devono essere classificate come BOTH.
 
     IMPORTANTE:
     Le richieste educative per bambini,
@@ -185,7 +125,6 @@ def intent_agent(user_input, history):
 
     Rispondi SOLO con:
     WEB_SEARCH
-    KB_SEARCH
     BOTH
     CHAT
 
@@ -193,11 +132,6 @@ def intent_agent(user_input, history):
     Utente: attività linguistiche bambini
     Utente: fammi qualcosa in inglese
     → BOTH
-
-    Conversazione:
-    Utente: come funziona la piattaforma
-    Utente: gli insegnanti possono caricare file?
-    → KB_SEARCH
     """
 
     response = client.chat.completions.create(
@@ -206,10 +140,9 @@ def intent_agent(user_input, history):
     )
 
     intent = response.choices[0].message.content.strip()
-
+    
     valid_intents = [
         "WEB_SEARCH",
-        "KB_SEARCH",
         "BOTH",
         "CHAT"
     ]
@@ -242,10 +175,11 @@ def search_agent(query):
 
     for r in data.get("organic_results", []):
         results.append({
-            "title": r.get("title", ""),
-            "link": r.get("link", ""),
-            "snippet": r.get("snippet", "")
-        })
+        "type": "link",
+        "title": r.get("title", ""),
+        "link": r.get("link", ""),
+        "snippet": r.get("snippet", "")
+    })
 
     # filtro semantico
     filtered = []
@@ -260,118 +194,23 @@ def search_agent(query):
 
     return filtered[:5]
 
-# =========================
-# 🔹 AGENTE 3: KB (RAG)
-# =========================
-
-def kb_agent(query):
-
-    print(">>> KB AGENT (CHROMA RAG) <<<")
-
-    # =========================
-    # 🔹 METADATA FILTER
-    # =========================
-
-    filter_metadata = {}
-
-    text = query.lower()
-
-    # lingua
-    if "inglese" in text or "english" in text:
-        filter_metadata["lingua"] = "en"
-
-    elif "spagnolo" in text or "spanish" in text:
-        filter_metadata["lingua"] = "es"
-
-    else:
-        filter_metadata["lingua"] = "it"
-
-    # ambito
-    if "piattaforma" in text:
-        filter_metadata["ambito"] = "piattaforma"
-
-    elif any(k in text for k in ["bambini", "gioco", "attività"]):
-        filter_metadata["ambito"] = "scolastico"
-
-    print(">>> FILTER KB:", filter_metadata)
-
-
-    # =========================
-    # 🔹 QUERY CHROMA
-    # =========================
-
-    # costruzione filtro ChromaDB
-
-    where_filter = None
-
-    if len(filter_metadata) == 1:
-
-        where_filter = filter_metadata
-
-    elif len(filter_metadata) > 1:
-
-        where_filter = {
-            "$and": [
-                {k: v} for k, v in filter_metadata.items()
-            ]
-        }
-
-    # query database
-
-    results = collection.query(
-        query_texts=[query],
-        n_results=2,
-        where=where_filter
-    )
-
-    # documenti recuperati
-
-    docs = results.get("documents", [[]])
-
-    if not docs or len(docs[0]) == 0:
-
-        return [{
-            "title": "Nessuna risorsa trovata",
-            "description": "La knowledge base non contiene risultati coerenti con la richiesta.",
-            "source": "KB"
-        }]
-
-    docs = docs[0]
-
-    print("\n>>> DOCUMENTI RECUPERATI KB:")
-    print(docs)
-
-    # =========================
-    # 🔹 FORMAT OUTPUT
-    # =========================
-
-    formatted = []
-
-    for d in docs:
-
-        formatted.append({
-            "title": "Risorsa KB",
-            "description": d,
-            "source": "KB"
-        })
-
-    return formatted
-
     # =========================
     # 🔹 recommendation NCF - Marta
     # =========================
 
 def recommendation_agent(query):
 
-    print(">>> SIMULATED NCF AGENT <<<")
+    if DEBUG:
+        print(">>> SIMULATED NCF AGENT <<<")
 
     recs = recommender.recommend(
         query=query,
         top_k=3
     )
 
-    print("\n>>> RECOMMENDATIONS:")
-    print(recs)
+    if DEBUG:
+        print("\n>>> RECOMMENDATIONS:")
+        print(recs)
 
     return recs
 
@@ -379,54 +218,64 @@ def recommendation_agent(query):
 # 🔹 AGENTE 4: CRITICO
 # =========================
 
-def critic_agent(web_results, kb_results, intent, recommendations):
+def critic_agent(user_query, web_results, intent, recommendations):
 
-    if intent == "KB_SEARCH":
+    prompt = f"""
 
-        prompt = f"""
-        Hai questi risultati dalla knowledge base:
-        {kb_results}
+    Richiesta utente:
+    {user_query}
 
-        Usa SOLO queste informazioni.
+    Hai questi risultati WEB:
+    {web_results}
 
-        Spiega chiaramente all’utente come funziona la piattaforma
-        o rispondi alla domanda informativa.
+    Intent:
+    {intent}
 
-        NON parlare di bambini 3-6 anni
-        se non richiesto.
-        """
+    Risorse recuperate dal sistema di raccomandazione:
+    {recommendations}
 
-    else:
+    REGOLE:
+    - usa SOLO risultati forniti
+    - NON inventare informazioni
+    - valuta criticamente la pertinenza dei risultati
+    - NON assumere che tutte le risorse siano utili
+    - se una risorsa non è chiaramente pertinente alla richiesta, dillo esplicitamente
+    - NON scrivere lunghi riassunti dei libri o delle risorse
+    - concentrati sulla relazione tra richiesta utente e risultati trovati
 
-        prompt = f"""
-        Hai questi risultati WEB:
-        {web_results}
+    IMPORTANTE:
+    Se la richiesta riguarda informatica,
+    programmazione o computer science,
+    libri tecnici della categoria Computers
+    devono essere considerati altamente pertinenti.
 
-        Hai questi risultati KB:
-        {kb_results}
+    Se il titolo della risorsa contiene parole uguali o molto simili
+    alla richiesta dell'utente (es. Python, Java, Computer,
+    Software, Programming, Coding, Informatica),
+    la pertinenza deve essere considerata ALTA.
 
-        NCF RECOMMENDATIONS:
-        {recommendations}
+    Non classificare come BASSA una risorsa che contiene
+    direttamente l'argomento richiesto nel titolo.
 
-        Intent:
-        {intent}
+    Esempio:
+    Richiesta: Python
+    Titolo: Learning Python
+    → Pertinenza ALTA
 
-        REGOLE:
-        - usa SOLO risultati forniti
-        - NON inventare informazioni
+    Richiesta: Java
+    Titolo: Java Tutorial
+    → Pertinenza ALTA
 
-        Analizza le risorse recuperate.
+    OUTPUT:
 
-        Se la richiesta riguarda il contesto educativo,
-        seleziona le risorse più pertinenti per insegnamento,
-        apprendimento e sviluppo delle competenze.
+    Per ogni risorsa:
+    - titolo
+    - livello di pertinenza (Alta / Media / Bassa)
+    - breve motivazione (1 frase)
 
-        Se la richiesta riguarda formazione o lavoro,
-        seleziona le risorse più pertinenti per crescita professionale,
-        formazione tecnica e sviluppo delle competenze.
-
-        Spiega brevemente perché le risorse sono rilevanti.
-        """
+    Se nessuna risorsa è realmente pertinente,
+    spiega che sarebbe utile effettuare una ricerca web.
+    """
 
     response = client.chat.completions.create(
         model="gpt-4o",
@@ -445,21 +294,19 @@ class AgentState(TypedDict):
 
     conversation_history: list
 
-    detected_language: str
-
-    last_topic: str
-
     intent: str
 
     query: str
 
     web_results: list
 
+    final_output: str
+
     recommendations: list
 
-    kb_results: list
+    recommendations_found: bool
 
-    final_output: str
+    best_recommendation_score: float
 
 # =========================
 # 🔹 NODI (AGENTI)
@@ -484,27 +331,29 @@ def query_node(state: AgentState):
 def web_node(state: AgentState):
     return {"web_results": search_agent(state["query"])}
 
-def kb_node(state: AgentState):
-
-    # se non esiste query usa input utente
-    query = state.get("query", state["user_input"])
-
-    return {
-        "kb_results": kb_agent(query)
-    }
-
 def recommendation_node(state):
 
     if state["intent"] != "BOTH":
 
         return {
-            "recommendations": []
+            "recommendations": [],
+            "recommendations_found": False,
+            "best_recommendation_score": 0
         }
 
+    recs = recommendation_agent(
+        state["user_input"]
+    )
+
+    best_score = max(
+        [r["score"] for r in recs],
+        default=0
+    )
+
     return {
-        "recommendations": recommendation_agent(
-            state["user_input"]
-        )
+        "recommendations": recs,
+        "recommendations_found": len(recs) > 0,
+        "best_recommendation_score": best_score
     }
 
 def critic_node(state: AgentState):
@@ -514,15 +363,40 @@ def critic_node(state: AgentState):
         return {
             "final_output": "Ciao! Come posso aiutarti?"
         }
+    
+    if (
+        state["intent"] == "BOTH"
+        and state.get("recommendations_found", False)
+        and state.get("best_recommendation_score", 0) < 20
+    ):
 
-    return {
-    "final_output": critic_agent(
+        return {
+            "final_output":
+            """
+Non ho trovato contenuti sufficientemente pertinenti nel sistema di raccomandazione.
+
+Vuoi che effettui una ricerca web per trovare contenuti più specifici?
+            """
+        }
+
+    response = critic_agent(
+        state["user_input"],
         state.get("web_results", []),
-        state.get("kb_results", []),
         state["intent"],
         state.get("recommendations", [])
     )
-}
+
+    # Se sono state trovate raccomandazioni NCF
+    if state.get("recommendations_found", False):
+
+        response += """
+
+Vuoi che effettui anche una ricerca sul web per approfondire?
+    """
+
+    return {
+        "final_output": response
+    }
 
 # =========================
 # 🔹 ROUTER DINAMICO
@@ -532,19 +406,17 @@ def route_intent(state: AgentState):
 
     intent = state["intent"]
 
-    print("\n>>> ROUTING:", intent)
+    if DEBUG:
+        print("\n>>> ROUTING:", intent)
 
     if intent == "CHAT":
         return "critic"
-
-    elif intent == "KB_SEARCH":
-        return "kb"
 
     elif intent == "WEB_SEARCH":
         return "query"
 
     elif intent == "BOTH":
-        return "query"
+        return "recommendation"
 
     return "critic"
 
@@ -557,7 +429,6 @@ graph = StateGraph(AgentState)
 graph.add_node("intent", intent_node)
 graph.add_node("query", query_node)
 graph.add_node("web", web_node)
-graph.add_node("kb", kb_node)
 graph.add_node("recommendation", recommendation_node)
 graph.add_node("critic", critic_node)
 
@@ -573,17 +444,16 @@ graph.add_conditional_edges(
 graph.add_edge("query", "web")
 
 # dopo web
+graph.add_edge("web", "critic")
+
+# recommendation
 graph.add_conditional_edges(
-    "web",
+    "recommendation",
     lambda state:
-        "kb" if state["intent"] == "BOTH"
-        else "critic"
+        "critic"
+        if state["recommendations_found"]
+        else "query"
 )
-
-# NCF
-graph.add_edge("kb", "recommendation")
-graph.add_edge("recommendation", "critic")
-
 
 app = graph.compile()
 
@@ -591,34 +461,92 @@ app = graph.compile()
 # 🔹 RUN
 # =========================
 
-print("\nSistema avviato.")
-print("Scrivi una richiesta oppure digita 'exit', 'quit' o 'esci' per terminare.\n")
-
-# =========================
-# 🔹 CONVERSAZIONE APERTA
-# =========================
-
-history = []
-
-while True:
-
-    user_input = input("Utente: ")
-
-    # uscita
-    if user_input.lower() in ["exit", "quit", "esci"]:
-        print("\nSistema terminato.")
-        break
+def run_agent(user_input, history):
 
     result = app.invoke({
-    "user_input": user_input,
-    "conversation_history": history
-})
+        "user_input": user_input,
+        "conversation_history": history
+    })
+
+    print(result.keys())
+    print(result.get("recommendations"))
 
     history.append({
-    "user": user_input,
-    "assistant": result["final_output"]
-})
+        "user": user_input,
+        "assistant": result["final_output"]
+    })
 
-    print("\nAssistente:")
-    print(result["final_output"])
-    print()
+    needs_web_search = (
+        "Vuoi che effettui anche una ricerca sul web"
+        in result["final_output"]
+    )
+
+    return {
+        "response": result["final_output"],
+        "needs_web_search": needs_web_search,
+        "recommendations": result.get("recommendations", [])
+    }
+
+
+def run_web_search(user_query):
+
+    query = query_agent(user_query)
+
+    web_results = search_agent(query)
+
+    response = critic_agent(
+        user_query,
+        web_results,
+        "WEB_SEARCH",
+        []
+    )
+
+    return response
+
+
+if __name__ == "__main__":
+
+    print("\nSistema avviato.")
+    print(
+        "Scrivi una richiesta oppure digita "
+        "'exit', 'quit' o 'esci' per terminare.\n"
+    )
+
+    history = []
+
+    while True:
+
+        user_input = input("Utente: ")
+
+        if user_input.lower() in [
+            "exit",
+            "quit",
+            "esci"
+        ]:
+            print("\nSistema terminato.")
+            break
+
+        result = run_agent(
+            user_input,
+            history
+        )
+
+        print("\nAssistente:")
+        print(result["response"])
+        print()
+
+        if result["needs_web_search"]:
+
+            choice = input(
+                "Approfondire sul web? (si/no): "
+            )
+
+            if choice.lower() == "si":
+
+                web_response = run_web_search(
+                    user_input
+                )
+
+                print("\nAssistente:")
+                print(web_response)
+                print()

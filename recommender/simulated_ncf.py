@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class SimulatedNCF:
 
     def __init__(self):
@@ -37,7 +38,10 @@ class SimulatedNCF:
             "lavoro",
             "carriera",
             "professionale",
-            "competenze"
+            "competenze",
+            "java",
+            "python",
+            "c++"
         ]
 
         educational_domain = any(
@@ -65,10 +69,14 @@ class SimulatedNCF:
             ).lower()
 
             # Match testuale
+            matches = 0
+
             for word in query.split():
 
-                if word in text:
-                    score += 5
+                if len(word) > 3 and word in text:
+                    matches += 1
+
+            score += matches * 20
 
             # Dominio educational
             if educational_domain:
@@ -94,7 +102,7 @@ class SimulatedNCF:
             try:
                 score += float(
                     row.get("popularity_score", 0)
-                )
+                ) * 0.2
             except:
                 pass
 
@@ -102,13 +110,14 @@ class SimulatedNCF:
 
         self.df["score"] = scores
 
+        # Mantieni solo risultati minimamente pertinenti
         results = (
-            self.df
+            self.df[self.df["score"] > 20]
             .sort_values("score", ascending=False)
             .head(top_k)
         )
 
-        return results[
+        records = results[
             [
                 "title",
                 "description",
@@ -116,3 +125,8 @@ class SimulatedNCF:
                 "score"
             ]
         ].to_dict("records")
+
+        for r in records:
+            r["type"] = "document"
+
+        return records
