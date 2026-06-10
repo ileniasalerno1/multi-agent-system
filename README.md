@@ -82,8 +82,8 @@ agent/
 Clone the repository:
 
 ```bash
-git clone https://github.com/ileniasalerno1/educational-multi-agent-system.git
-cd educational-multi-agent-system
+git clone https://github.com/ileniasalerno1/multi-agent-system.git
+cd multi-agent-system
 ```
 
 Install dependencies:
