@@ -195,22 +195,76 @@ def search_agent(query):
     return filtered[:5]
 
     # =========================
+    # 🔹 filtro per risposte non pertinenti
+    # =========================
+
+def filter_recommendations_llm(user_query, recommendations):
+
+    prompt = f"""
+    Richiesta utente:
+    {user_query}
+
+    Risorse candidate:
+    {recommendations}
+
+    Mantieni SOLO le risorse chiaramente pertinenti.
+
+    Elimina:
+    - risultati fuori tema
+    - risultati vagamente correlati
+    - risultati che condividono solo una parola
+
+    Restituisci SOLO gli indici da mantenere.
+
+    Esempio:
+
+    [0,2]
+
+    oppure
+
+    [1]
+
+    oppure
+
+    []
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    text = response.choices[0].message.content.strip()
+
+    try:
+        indices = eval(text)
+
+        return [
+            recommendations[i]
+            for i in indices
+            if i < len(recommendations)
+        ]
+
+    except:
+        return recommendations[:1]
+
+    # =========================
     # 🔹 recommendation NCF - Marta
     # =========================
 
 def recommendation_agent(query):
-
-    if DEBUG:
-        print(">>> SIMULATED NCF AGENT <<<")
 
     recs = recommender.recommend(
         query=query,
         top_k=3
     )
 
-    if DEBUG:
-        print("\n>>> RECOMMENDATIONS:")
-        print(recs)
+    recs = filter_recommendations_llm(
+        query,
+        recs
+    )
 
     return recs
 
@@ -458,6 +512,21 @@ graph.add_conditional_edges(
 app = graph.compile()
 
 # =========================
+# 🔹 Which agent?
+# =========================
+
+def build_agents_used(result):
+
+    agents = []
+
+    if result.get("recommendations"):
+        agents.append("NCF")
+
+    agents.append("CRITIC")
+
+    return agents
+
+# =========================
 # 🔹 RUN
 # =========================
 
@@ -484,7 +553,8 @@ def run_agent(user_input, history):
     return {
         "response": result["final_output"],
         "needs_web_search": needs_web_search,
-        "recommendations": result.get("recommendations", [])
+        "recommendations": result.get("recommendations", []),
+        "agents_used": build_agents_used(result)
     }
 
 
@@ -501,7 +571,11 @@ def run_web_search(user_query):
         []
     )
 
-    return response
+    return {
+        "response": response,
+        "web_results": web_results,
+        "agents_used": ["WEB", "CRITIC"]
+    }
 
 
 if __name__ == "__main__":
