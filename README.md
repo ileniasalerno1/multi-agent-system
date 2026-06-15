@@ -2,7 +2,7 @@
 
 Multi-Agent System is an educational recommendation platform based on a multi-agent architecture built with LangGraph, OpenAI, Streamlit and SerpAPI.
 
-The system combines recommendation, web search and critical evaluation capabilities to help users discover educational and professional learning resources.
+The system combines semantic recommendation, web search and critical evaluation capabilities to help users discover educational and professional learning resources.
 
 ---
 
@@ -15,23 +15,57 @@ Classifies user requests and determines the most appropriate execution flow.
 Supported interaction types include:
 
 * General conversation
-* Educational resource recommendation
-* Professional resource recommendation
+* Resource recommendation
 * Web search enrichment
+* Combined recommendation and web search
 
 ---
 
-### Recommendation Agent (Simulated NCF)
+### Recommendation Agent (Embedding-Based Retrieval)
 
-The recommendation layer retrieves educational resources from a dataset of over 6,700 items.
+The recommendation layer retrieves resources from a dataset containing more than 6,700 books and learning materials.
 
-Recommendations are generated using:
+Recommendations are generated through semantic retrieval based on sentence embeddings.
 
-* textual similarity
-* resource categories
-* educational domain matching
-* professional domain matching
-* popularity score
+The system:
+
+* generates embeddings from resource title and description
+* stores precomputed embeddings in the dataset
+* generates an embedding for the user query
+* computes cosine similarity between query and resources
+* retrieves the Top-10 most relevant candidates
+
+This approach allows semantic matching beyond simple keyword search.
+
+---
+
+### Critic Agent
+
+The Critic Agent performs a second-level evaluation of the retrieved resources.
+
+It receives:
+
+* user query
+* candidate resources
+* titles
+* descriptions
+* metadata
+
+The agent filters irrelevant resources and returns a structured JSON response:
+
+```json
+{
+  "answer": "Brief explanation of the retrieved resources",
+  "ids": [1008, 5670]
+}
+```
+
+Where:
+
+* `answer` contains a short relevance assessment
+* `ids` contains only the identifiers of the resources considered relevant
+
+Only resources approved by the Critic Agent are shown to the user.
 
 ---
 
@@ -39,20 +73,13 @@ Recommendations are generated using:
 
 When additional information may be useful, the system can perform web searches through SerpAPI.
 
-Users can decide whether to:
+The web module:
 
-* accept the recommended resources only
-* request a web-based enrichment
+* retrieves between 3 and 5 web resources
+* supports optional enrichment after recommendations
+* acts as a fallback when no relevant recommendation is found
 
-If no relevant recommendation is found, the system automatically falls back to web search.
-
----
-
-### Critic Agent
-
-The Critic Agent evaluates the retrieved resources and generates a final response explaining why the selected resources are relevant to the user's request.
-
-The user never sees internal system details or execution logic.
+Users can decide whether to explore web resources after receiving recommendations.
 
 ---
 
@@ -61,7 +88,7 @@ The user never sees internal system details or execution logic.
 The Streamlit interface provides:
 
 * conversational chat interface
-* recommendation cards
+* semantic resource recommendations
 * clickable web resources
 * clickable dataset resources
 * dedicated resource detail pages
@@ -74,7 +101,7 @@ The Streamlit interface provides:
 
 Dataset resources do not contain external URLs.
 
-To improve usability, each recommended resource can be opened through a dedicated page displaying:
+Each recommended resource can be opened through a dedicated page displaying:
 
 * Title
 * Author
@@ -97,14 +124,19 @@ Intent Agent
     +--------------------+
     |                    |
     v                    v
-Recommendation Agent   Web Search Agent
-       \                /
-        \              /
-         v            v
-          Critic Agent
-                |
-                v
-            Frontend
+Embedding Retrieval   Web Search Agent
+       |
+       v
+Top-10 Candidates
+       |
+       v
+Critic Agent
+       |
+       v
+Filtered Resources
+       |
+       v
+Frontend
 ```
 
 ---
@@ -116,6 +148,8 @@ Recommendation Agent   Web Search Agent
 * OpenAI API
 * Streamlit
 * SerpAPI
+* SentenceTransformers
+* Scikit-learn
 * Pandas
 
 ---
@@ -127,13 +161,15 @@ agent/
 │
 ├── frontend.py
 ├── mytestagent.py
+├── generate_embeddings.py
 │
 ├── pages/
 │   └── resource.py
 │
 ├── recommender/
 │   ├── simulated_ncf.py
-│   └── book_rich_metadata.csv
+│   ├── book_rich_metadata.csv
+│   └── book_rich_metadata_embeddings.csv
 │
 ├── .env
 └── requirements.txt
