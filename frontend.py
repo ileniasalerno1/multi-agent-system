@@ -8,7 +8,8 @@ from mytestagent import (
 st.set_page_config(
     page_title="Multi-Agent System",
     page_icon="🤖",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 st.title("🤖 Multi-Agent System")
@@ -55,22 +56,10 @@ for msg in st.session_state.messages:
 
             for rec in msg["recommendations"][:1]:
 
-                st.markdown(
-                    f"""
-                    <div style="
-                    background-color:#1e293b;
-                    color:white;
-                    border:1px solid #334155;
-                    padding:15px;
-                    border-radius:12px;
-                    margin-top:10px;
-                    margin-bottom:10px;
-                    ">
-                    <b>📚 Risorsa consigliata</b><br><br>
-                    {rec["title"]}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                st.link_button(
+                    label=f"📚 {rec['title']}",
+                    url=f"http://localhost:8501/resource?id={rec['book_id']}",
+                    use_container_width=True
                 )
 
         if "agents_used" in msg:

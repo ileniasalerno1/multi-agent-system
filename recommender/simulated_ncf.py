@@ -9,6 +9,9 @@ class SimulatedNCF:
             "recommender/book_rich_metadata.csv"
         ).fillna("")
 
+        print("Book ID univoci:", self.df["book_id"].nunique())
+        print("Numero righe:", len(self.df))
+
     def recommend(self, query, top_k=3):
 
         query = query.lower()
@@ -119,8 +122,12 @@ class SimulatedNCF:
 
         records = results[
             [
+                "book_id",
                 "title",
                 "description",
+                "clean_author",
+                "year",
+                "avg_rating",
                 "simple_category",
                 "score"
             ]
