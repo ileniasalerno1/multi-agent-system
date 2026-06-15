@@ -52,9 +52,11 @@ for msg in st.session_state.messages:
                     use_container_width=True
                 )
 
-        if "recommendations" in msg:
+        if len(msg.get("recommendations", [])) > 0:
 
-            for rec in msg["recommendations"][:1]:
+            st.markdown("### 📚 Risorse consigliate")
+
+            for rec in msg["recommendations"]:
 
                 st.link_button(
                     label=f"📚 {rec['title']}",
@@ -155,6 +157,10 @@ if prompt:
 if st.session_state.pending_web_search:
 
     st.divider()
+
+    st.markdown(
+        "### Vuoi che effettui anche una ricerca sul web per approfondire?"
+    )
 
     col1, col2 = st.columns(2)
 

@@ -1,6 +1,7 @@
 import requests
 from openai import OpenAI
 import os
+import json
 
 from langgraph.graph import StateGraph
 from typing import TypedDict
@@ -168,7 +169,6 @@ def search_agent(query):
     data = res.json()
 
     if "organic_results" not in data:
-
         return []
 
     results = []
@@ -180,19 +180,10 @@ def search_agent(query):
         "link": r.get("link", ""),
         "snippet": r.get("snippet", "")
     })
+        
+    print("RISULTATI GOOGLE:", len(results))
 
-    # filtro semantico
-    filtered = []
-    for r in results:
-        text = (r["title"] + " " + r["snippet"]).lower()
-
-        if any(k in text for k in ["bambin", "linguaggio", "gioco", "infanzia"]):
-            filtered.append(r)
-
-    if len(filtered) == 0:
-        return results[:5]
-
-    return filtered[:5]
+    return results[:5]
 
     # =========================
     # 🔹 filtro per risposte non pertinenti
@@ -209,24 +200,31 @@ def filter_recommendations_llm(user_query, recommendations):
 
     Mantieni SOLO le risorse chiaramente pertinenti.
 
-    Elimina:
-    - risultati fuori tema
-    - risultati vagamente correlati
-    - risultati che condividono solo una parola
+    Restituisci SOLO un JSON valido.
 
-    Restituisci SOLO gli indici da mantenere.
+    NON utilizzare markdown.
+    NON utilizzare ```json.
+    Restituisci esclusivamente il JSON.
 
-    Esempio:
-
-    [0,2]
-
-    oppure
-
-    [1]
+    Formato:
+    {{
+        "answer": "breve valutazione delle risorse trovate",
+        "ids": [2663, 1450]
+    }}
 
     oppure
 
-    []
+    {{
+        "answer": "non sono state trovate risorse pertinenti",
+        "ids": []
+    }}
+
+    Regole:
+    - answer deve contenere massimo 3 frasi
+    - answer deve spiegare se le risorse sono pertinenti alla richiesta
+    - ids deve contenere esclusivamente i book_id delle risorse pertinenti
+    - non utilizzare markdown
+    - restituisci esclusivamente il JSON
     """
 
     response = client.chat.completions.create(
@@ -238,17 +236,39 @@ def filter_recommendations_llm(user_query, recommendations):
 
     text = response.choices[0].message.content.strip()
 
-    try:
-        indices = eval(text)
+    print("INDICI SELEZIONATI:", text)
 
-        return [
-            recommendations[i]
-            for i in indices
-            if i < len(recommendations)
+    text = text.replace("```json", "")
+    text = text.replace("```", "")
+    text = text.strip()
+
+    try:
+
+        data = json.loads(text)
+
+        answer = data["answer"]
+        selected_ids = data["ids"]
+
+        filtered_recommendations = [
+            rec
+            for rec in recommendations
+            if rec["book_id"] in selected_ids
         ]
 
-    except:
-        return recommendations[:1]
+        return {
+            "answer": answer,
+            "recommendations": filtered_recommendations
+        }
+
+    except Exception as e:
+
+        print("ERRORE PARSING JSON:", e)
+        print("RISPOSTA GPT:", text)
+
+        return {
+            "answer": "Errore durante la valutazione delle risorse.",
+            "recommendations": recommendations
+        }
 
     # =========================
     # 🔹 recommendation NCF - Marta
@@ -258,15 +278,15 @@ def recommendation_agent(query):
 
     recs = recommender.recommend(
         query=query,
-        top_k=3
+        top_k=10
     )
 
-    recs = filter_recommendations_llm(
+    result = filter_recommendations_llm(
         query,
         recs
     )
 
-    return recs
+    return result
 
 # =========================
 # 🔹 AGENTE 4: CRITICO
@@ -275,60 +295,41 @@ def recommendation_agent(query):
 def critic_agent(user_query, web_results, intent, recommendations):
 
     prompt = f"""
-
     Richiesta utente:
     {user_query}
 
-    Hai questi risultati WEB:
+    Risorse NCF:
+    {recommendations}
+
+    Risultati Web:
     {web_results}
 
     Intent:
     {intent}
 
-    Risorse recuperate dal sistema di raccomandazione:
-    {recommendations}
+    Regole:
 
-    REGOLE:
-    - usa SOLO risultati forniti
-    - NON inventare informazioni
-    - valuta criticamente la pertinenza dei risultati
-    - NON assumere che tutte le risorse siano utili
-    - se una risorsa non è chiaramente pertinente alla richiesta, dillo esplicitamente
-    - NON scrivere lunghi riassunti dei libri o delle risorse
-    - concentrati sulla relazione tra richiesta utente e risultati trovati
+    - usa SOLO le informazioni fornite
+    - non inventare informazioni
+    - non fare riassunti
+    - non elencare titoli
+    - non creare classifiche
+    - non numerare risultati
 
-    IMPORTANTE:
-    Se la richiesta riguarda informatica,
-    programmazione o computer science,
-    libri tecnici della categoria Computers
-    devono essere considerati altamente pertinenti.
+    Se intent = BOTH:
+    valuta le risorse NCF.
 
-    Se il titolo della risorsa contiene parole uguali o molto simili
-    alla richiesta dell'utente (es. Python, Java, Computer,
-    Software, Programming, Coding, Informatica),
-    la pertinenza deve essere considerata ALTA.
+    Se intent = WEB_SEARCH:
+    valuta i risultati Web.
 
-    Non classificare come BASSA una risorsa che contiene
-    direttamente l'argomento richiesto nel titolo.
+    Se i risultati mostrati sono pertinenti,
+    spiega brevemente che il sistema ha trovato
+    contenuti rilevanti e che l'utente può aprirli
+    per approfondire.
 
-    Esempio:
-    Richiesta: Python
-    Titolo: Learning Python
-    → Pertinenza ALTA
-
-    Richiesta: Java
-    Titolo: Java Tutorial
-    → Pertinenza ALTA
-
-    OUTPUT:
-
-    Per ogni risorsa:
-    - titolo
-    - livello di pertinenza (Alta / Media / Bassa)
-    - breve motivazione (1 frase)
-
-    Se nessuna risorsa è realmente pertinente,
-    spiega che sarebbe utile effettuare una ricerca web.
+    Se intent = WEB_SEARCH:
+    NON dire che non sono stati trovati risultati.
+    NON suggerire ulteriori ricerche web.
     """
 
     response = client.chat.completions.create(
@@ -359,6 +360,8 @@ class AgentState(TypedDict):
     recommendations: list
 
     recommendations_found: bool
+
+    recommendations_answer: str
 
     best_recommendation_score: float
 
@@ -395,9 +398,13 @@ def recommendation_node(state):
             "best_recommendation_score": 0
         }
 
-    recs = recommendation_agent(
+    result = recommendation_agent(
         state["user_input"]
     )
+
+    recs = result["recommendations"]
+
+    answer = result["answer"]
 
     best_score = max(
         [r["score"] for r in recs],
@@ -406,6 +413,7 @@ def recommendation_node(state):
 
     return {
         "recommendations": recs,
+        "recommendations_answer": answer,
         "recommendations_found": len(recs) > 0,
         "best_recommendation_score": best_score
     }
@@ -417,12 +425,18 @@ def critic_node(state: AgentState):
         return {
             "final_output": "Ciao! Come posso aiutarti?"
         }
-    
-    if (
-        state["intent"] == "BOTH"
-        and state.get("recommendations_found", False)
-        and state.get("best_recommendation_score", 0) < 20
-    ):
+
+    if state["intent"] == "BOTH":
+
+        if state.get("recommendations_found", False):
+
+            return {
+                "final_output":
+                    state.get(
+                        "recommendations_answer",
+                        ""
+                    )
+            }
 
         return {
             "final_output":
@@ -439,14 +453,6 @@ Vuoi che effettui una ricerca web per trovare contenuti più specifici?
         state["intent"],
         state.get("recommendations", [])
     )
-
-    # Se sono state trovate raccomandazioni NCF
-    if state.get("recommendations_found", False):
-
-        response += """
-
-Vuoi che effettui anche una ricerca sul web per approfondire?
-    """
 
     return {
         "final_output": response
@@ -537,17 +543,14 @@ def run_agent(user_input, history):
         "conversation_history": history
     })
 
-    print(result.keys())
-    print(result.get("recommendations"))
-
     history.append({
         "user": user_input,
         "assistant": result["final_output"]
     })
 
-    needs_web_search = (
-        "Vuoi che effettui anche una ricerca sul web"
-        in result["final_output"]
+    needs_web_search = result.get(
+        "recommendations_found",
+        False
     )
 
     return {

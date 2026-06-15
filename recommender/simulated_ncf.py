@@ -1,122 +1,53 @@
 import pandas as pd
+import json
 
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 
 class SimulatedNCF:
 
     def __init__(self):
 
         self.df = pd.read_csv(
-            "recommender/book_rich_metadata.csv"
+            "recommender/book_rich_metadata_embeddings.csv"
         ).fillna("")
 
-        print("Book ID univoci:", self.df["book_id"].nunique())
-        print("Numero righe:", len(self.df))
+        self.model = SentenceTransformer(
+            "all-MiniLM-L6-v2"
+        )
 
-    def recommend(self, query, top_k=3):
+        self.df["embedding"] = self.df[
+            "embedding"
+        ].apply(json.loads)
 
-        query = query.lower()
+    def recommend(self, query, top_k=10):
+
+        query_embedding = self.model.encode(
+            query,
+            convert_to_numpy=True
+        )
 
         scores = []
 
-        educational_keywords = [
-            "bambini",
-            "bambino",
-            "infanzia",
-            "linguaggio",
-            "lettura",
-            "gioco",
-            "giochi",
-            "scuola",
-            "educazione",
-            "didattica"
-        ]
-
-        professional_keywords = [
-            "programmazione",
-            "coding",
-            "software",
-            "sviluppatore",
-            "informatica",
-            "computer",
-            "lavoro",
-            "carriera",
-            "professionale",
-            "competenze",
-            "java",
-            "python",
-            "c++"
-        ]
-
-        educational_domain = any(
-            keyword in query
-            for keyword in educational_keywords
-        )
-
-        professional_domain = any(
-            keyword in query
-            for keyword in professional_keywords
-        )
-
         for _, row in self.df.iterrows():
 
-            score = 0
+            resource_embedding = row["embedding"]
 
-            text = (
-                str(row.get("title", "")) + " " +
-                str(row.get("description", "")) + " " +
-                str(row.get("simple_category", ""))
-            ).lower()
+            similarity = cosine_similarity(
+                [query_embedding],
+                [resource_embedding]
+            )[0][0]
 
-            category = str(
-                row.get("simple_category", "")
-            ).lower()
-
-            # Match testuale
-            matches = 0
-
-            for word in query.split():
-
-                if len(word) > 3 and word in text:
-                    matches += 1
-
-            score += matches * 20
-
-            # Dominio educational
-            if educational_domain:
-
-                if category in [
-                    "juvenile fiction",
-                    "juvenile nonfiction",
-                    "social science"
-                ]:
-                    score += 15
-
-            # Dominio professionale
-            if professional_domain:
-
-                if category in [
-                    "computers",
-                    "business & economics",
-                    "self-help"
-                ]:
-                    score += 15
-
-            # Popolarità
-            try:
-                score += float(
-                    row.get("popularity_score", 0)
-                ) * 0.2
-            except:
-                pass
-
-            scores.append(score)
+            scores.append(similarity)
 
         self.df["score"] = scores
 
-        # Mantieni solo risultati minimamente pertinenti
         results = (
-            self.df[self.df["score"] > 20]
-            .sort_values("score", ascending=False)
+            self.df[self.df["score"] >= 0.3]
+            .sort_values(
+                "score",
+                ascending=False
+            )
             .head(top_k)
         )
 
@@ -134,6 +65,7 @@ class SimulatedNCF:
         ].to_dict("records")
 
         for r in records:
+
             r["type"] = "document"
 
         return records
