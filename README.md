@@ -1,64 +1,124 @@
 # Multi-Agent System
 
-Multi-Agent System è una piattaforma sperimentale basata su un'architettura multi-agente sviluppata con LangGraph, OpenAI, ChromaDB e Streamlit.
+Multi-Agent System is an educational recommendation platform based on a multi-agent architecture built with LangGraph, OpenAI, Streamlit and SerpAPI.
 
-Il sistema è progettato per supportare la ricerca e la raccomandazione di risorse educative attraverso l'integrazione di:
+The system combines recommendation, web search and critical evaluation capabilities to help users discover educational and professional learning resources.
 
-* Intent Detection
-* Knowledge Base Retrieval (RAG)
-* Recommendation System
-* Web Search
-* Critical Evaluation Agent
+---
 
 ## Features
 
 ### Intent Detection Agent
 
-Identifica automaticamente l'intento dell'utente classificando le richieste nelle seguenti categorie:
+Classifies user requests and determines the most appropriate execution flow.
 
-* CHAT
-* KB_SEARCH
-* WEB_SEARCH
-* BOTH
+Supported interaction types include:
 
-### Knowledge Base Agent (RAG)
+* General conversation
+* Educational resource recommendation
+* Professional resource recommendation
+* Web search enrichment
 
-Utilizza ChromaDB per recuperare informazioni da una knowledge base locale contenente risorse educative e informazioni sulla piattaforma.
+---
 
-### Recommendation Agent
+### Recommendation Agent (Simulated NCF)
 
-Genera raccomandazioni utilizzando un sistema di scoring basato su:
+The recommendation layer retrieves educational resources from a dataset of over 6,700 items.
 
-* corrispondenza testuale tra query e contenuti
-* categorie delle risorse
-* domini educativi e professionali
-* popolarità delle risorse
+Recommendations are generated using:
+
+* textual similarity
+* resource categories
+* educational domain matching
+* professional domain matching
+* popularity score
+
+---
 
 ### Web Search Agent
 
-Quando le risorse interne non risultano sufficientemente pertinenti, il sistema può effettuare ricerche sul web tramite SerpAPI.
+When additional information may be useful, the system can perform web searches through SerpAPI.
+
+Users can decide whether to:
+
+* accept the recommended resources only
+* request a web-based enrichment
+
+If no relevant recommendation is found, the system automatically falls back to web search.
+
+---
 
 ### Critic Agent
 
-Valuta criticamente le risorse recuperate e produce una spiegazione della loro pertinenza rispetto alla richiesta dell'utente.
+The Critic Agent evaluates the retrieved resources and generates a final response explaining why the selected resources are relevant to the user's request.
+
+The user never sees internal system details or execution logic.
+
+---
 
 ### Streamlit Frontend
 
-Interfaccia conversazionale sviluppata con Streamlit che consente di:
+The Streamlit interface provides:
 
-* interagire con il sistema tramite chat
-* visualizzare le risorse raccomandate
-* richiedere approfondimenti sul web tramite pulsanti dedicati
+* conversational chat interface
+* recommendation cards
+* clickable web resources
+* clickable dataset resources
+* dedicated resource detail pages
+* agent execution badges
+* optional web search enrichment
+
+---
+
+## Resource Detail Pages
+
+Dataset resources do not contain external URLs.
+
+To improve usability, each recommended resource can be opened through a dedicated page displaying:
+
+* Title
+* Author
+* Publication year
+* Average rating
+* Description
+
+Resources are retrieved through their unique `book_id`.
+
+---
+
+## Agent Workflow
+
+```text
+User Query
+    |
+    v
+Intent Agent
+    |
+    +--------------------+
+    |                    |
+    v                    v
+Recommendation Agent   Web Search Agent
+       \                /
+        \              /
+         v            v
+          Critic Agent
+                |
+                v
+            Frontend
+```
+
+---
 
 ## Technologies
 
 * Python
 * LangGraph
 * OpenAI API
-* ChromaDB
 * Streamlit
 * SerpAPI
 * Pandas
+
+---
 
 ## Project Structure
 
@@ -68,14 +128,18 @@ agent/
 ├── frontend.py
 ├── mytestagent.py
 │
-├── recommender/
-│   └── simulated_ncf.py
+├── pages/
+│   └── resource.py
 │
-├── chroma_db/
+├── recommender/
+│   ├── simulated_ncf.py
+│   └── book_rich_metadata.csv
 │
 ├── .env
 └── requirements.txt
 ```
+
+---
 
 ## Installation
 
@@ -104,6 +168,8 @@ Run the application:
 ```bash
 streamlit run frontend.py
 ```
+
+---
 
 ## Authors
 
