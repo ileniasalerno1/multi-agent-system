@@ -1,0 +1,11 @@
+query,intent,expected_books
+ciao,CHAT,
+come stai?,CHAT,
+vorrei imparare python,BOTH,2663
+cerco un libro su java,BOTH,2662|3665|6173|643|1040|2474|2473|2536|4295
+libri di programmazione,BOTH,1008|5670|1057
+computer networks,BOTH,1097
+linux programming,BOTH,645|646
+database,BOTH,1244|1245|3671|5093|642
+machine learning,BOTH,
+cerca siti per imparare python,BOTH,2663

@@ -1,0 +1,11 @@
+query,expected,predicted,correct
+ciao,CHAT,CHAT,True
+come stai?,CHAT,CHAT,True
+vorrei imparare python,BOTH,BOTH,True
+cerco un libro su java,BOTH,BOTH,True
+libri di programmazione,BOTH,BOTH,True
+computer networks,BOTH,BOTH,True
+linux programming,BOTH,BOTH,True
+database,BOTH,BOTH,True
+machine learning,BOTH,BOTH,True
+cerca siti per imparare python,BOTH,BOTH,True

@@ -68,4 +68,11 @@ class SimulatedNCF:
 
             r["type"] = "document"
 
+        print(results[
+            [
+                "book_id",
+                "title"
+            ]
+        ])
+
         return records
