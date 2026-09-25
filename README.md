@@ -20,6 +20,8 @@ The system is organized into five main components:
 
 Each agent is responsible for a specific task within the recommendation pipeline.
 
+> **Note on Neural Collaborative Filtering (NCF).** The Recommendation Agent does not implement a real NCF model. The system operates without a persistent user-item interaction history (every request is treated as an independent query), which makes classic collaborative filtering inapplicable. For this reason, semantic retrieval on embeddings was adopted instead, occupying the same architectural position originally intended for NCF without replicating its collaborative learning behavior. See the thesis, Chapter 2, for a full discussion.
+
 ---
 
 # Features
@@ -32,9 +34,9 @@ Its purpose is to classify each user request and route it through the correct ex
 
 Supported intents include:
 
-* General conversation
-* Resource recommendation
-* Combined recommendation and web search
+* General conversation (`CHAT`)
+* Resource recommendation (`BOTH`)
+* Explicit web search request (`WEB_SEARCH`)
 
 The agent exploits an LLM-based classifier and considers both the current request and the conversation history.
 
@@ -51,8 +53,10 @@ The recommendation process consists of:
 1. generating sentence embeddings for every resource title and description;
 2. storing the precomputed embeddings inside the dataset;
 3. generating an embedding for the user query;
-4. computing cosine similarity between the query embedding and every resource embedding;
-5. retrieving the Top-k most similar resources.
+4. computing cosine similarity between the query embedding and every resource embedding, filtered by a similarity threshold (0.3);
+5. retrieving the Top-k (k=10) most similar resources.
+
+The similarity threshold and the value of k were chosen empirically during development, based on qualitative observation of retrieval results; no systematic tuning procedure was applied.
 
 The embedding generation process is performed offline through the `generate_embeddings.py` script using the **SentenceTransformer all-MiniLM-L6-v2** model.
 
@@ -81,7 +85,7 @@ Example:
 }
 ```
 
-Only the resources approved by the Critic Agent are displayed within the user interface.
+Only the resources approved by the Critic Agent are displayed within the user interface. If the JSON output is malformed, the system falls back to the unfiltered recommendations rather than failing.
 
 ---
 
@@ -89,12 +93,16 @@ Only the resources approved by the Critic Agent are displayed within the user in
 
 The Web Search Agent integrates **SerpAPI** to retrieve external learning resources whenever additional information is required.
 
-The Web Agent is activated in two situations:
+It is important to distinguish between two separate moments of the fallback mechanism: the *activation of the option* and the *actual execution* of the search.
 
-* when the user explicitly requests a web search;
-* when the Recommendation Agent cannot retrieve sufficiently relevant resources (automatic fallback).
+The web search option is proposed to the user in two scenarios:
 
-Retrieved resources are displayed as clickable links inside the Streamlit interface.
+* **automatically**, when the Critic Agent does not find any relevant resource in the internal dataset (the interface displays a "Search the Web" option, without running any search yet);
+* **on direct user request**, even when the internal dataset has already returned relevant resources.
+
+In both cases, however, the **execution** of the web search is never automatic: it always requires an explicit confirmation action from the user (e.g. clicking the proposed option). This design choice follows an earlier version of the system in which the web search ran automatically on every request, producing often superfluous information and increasing response times.
+
+Retrieved resources are displayed as clickable links inside the Streamlit interface and are also validated by the Critic Agent before being shown.
 
 ---
 
@@ -111,7 +119,7 @@ Available features include:
 * clickable web resources;
 * agent execution badges;
 * optional web search enrichment;
-* automatic fallback suggestions.
+* automatic fallback suggestions (activation only — execution requires user confirmation).
 
 ---
 
@@ -143,7 +151,7 @@ Critic Agent
 No relevant resources
       │
       ▼
-Web Search Agent
+Web Search Agent (option proposed, execution on user confirmation)
       │
       ▼
 Final Response
@@ -171,7 +179,7 @@ Each resource is uniquely identified through its `book_id`.
 
 The project includes a complete experimental evaluation framework located inside the `evaluation` folder.
 
-The benchmark evaluates every component of the architecture.
+The benchmark evaluates every component of the architecture. Two separate benchmarks are used for methodological reasons: the Recommendation Agent evaluation requires a manually annotated ground truth at the resource level (`book_id`), which is costly to produce and therefore limited in size; the Intent Agent evaluation only requires a category label, allowing a larger benchmark to be built without the same annotation cost.
 
 ## Recommendation Agent
 
@@ -188,6 +196,8 @@ Implemented metrics:
 * Mean Average Precision (MAP)
 * Normalized Discounted Cumulative Gain (nDCG)
 
+The evaluation isolates the specific contribution of the Critic Agent by comparing two configurations on the same retrieved candidates: **baseline** (raw semantic retrieval, no filtering) and **with Critic Agent** (candidates validated and filtered).
+
 ---
 
 ## Intent Agent
@@ -195,6 +205,7 @@ Implemented metrics:
 Implemented metrics:
 
 * Intent Accuracy
+* Per-class Precision / Recall / F1-score
 
 ---
 
@@ -226,25 +237,56 @@ Qualitative evaluation includes:
 * Faithfulness
 * Citation Accuracy
 
+This evaluation was conducted manually by the author, through direct inspection of generated answers, on a small set of exploratory queries used during development — not on an automated procedure or an external evaluation model. Given its non-systematic nature, these results should be interpreted as a preliminary qualitative indication rather than a statistically robust measure.
+
 ---
 
 # Experimental Results
 
-Current benchmark results:
+## Recommendation Agent: baseline vs. Critic Agent
 
-| Metric                | Value      |
-| --------------------- | ---------- |
-| Intent Accuracy       | **100%**   |
-| Routing Precision     | **1.000**  |
-| Routing Recall        | **1.000**  |
-| Routing F1-score      | **1.000**  |
-| Task Success Rate     | **80%**    |
-| Precision             | **0.129**  |
-| Recall                | **0.800**  |
-| F1-score              | **0.220**  |
-| MAP                   | **0.640**  |
-| nDCG                  | **0.677**  |
-| Average Response Time | **4.47 s** |
+The benchmark contains 8 `BOTH` queries, of which 7 have a defined ground truth (the query "machine learning" has no annotated reference resources and is excluded from metric computation).
+
+| Metric                  | Baseline  | With Critic Agent |
+| ------------------------ | --------- | ------------------ |
+| Precision                | 0.341     | **0.786**          |
+| Recall                   | 0.857     | 0.784              |
+| Task Success Rate        | 0.857     | 0.857              |
+| F1-score                 | 0.425     | 0.765              |
+| MAP                      | 0.852     | 0.784              |
+| nDCG                     | 0.856     | 0.857              |
+| Avg. resources returned  | 8.0       | 2.57               |
+
+The Critic Agent nearly doubles Precision while keeping Task Success Rate unchanged, confirming its effectiveness in filtering false positives from pure semantic retrieval.
+
+## Intent Agent (99-query balanced benchmark)
+
+An initial evaluation on a 10-query benchmark (2 `CHAT`, 8 `BOTH`) had produced a 100% accuracy. Further analysis revealed a methodological limitation: that benchmark contained no `WEB_SEARCH` query, leaving a third of the categories untested, and the `BOTH` queries were limited to a single technical domain. The benchmark was therefore expanded to 99 queries, balanced across the three categories and including non-technical domains and ambiguous edge cases.
+
+| Metric                    | Value     |
+| -------------------------- | --------- |
+| Intent Accuracy            | **88.9%** |
+| Routing Precision (macro)  | 0.884     |
+| Routing Recall (macro)     | 0.897     |
+| Routing F1 (macro)         | 0.888     |
+
+| Class        | Precision | Recall | F1-score |
+| ------------ | --------- | ------ | -------- |
+| BOTH         | 0.93      | 0.86   | 0.89     |
+| CHAT         | 0.90      | 0.87   | 0.88     |
+| WEB_SEARCH   | 0.83      | 0.96   | 0.89     |
+
+The main limitation observed is reduced generalization on non-technical domains (e.g. fiction, cooking), since the prompt's few-shot examples are mostly technical/programming-oriented.
+
+## Response Time
+
+| Metric              | Value    |
+| -------------------- | -------- |
+| Average response time | 4.47 s  |
+| Minimum               | 1.12 s  |
+| Maximum                | 8.98 s  |
+
+Higher response times consistently correspond to cases where the web fallback is triggered.
 
 ---
 
@@ -273,16 +315,22 @@ agent/
 │
 ├── evaluation/
 │   ├── benchmark.csv
+│   ├── benchmark_v2.csv
 │   ├── evaluate_intent.py
+│   ├── evaluate_intent_v2.py
 │   ├── evaluate_recommender.py
+│   ├── evaluate_baseline_vs_critic.py
 │   ├── metrics.py
 │   ├── response_time.py
 │   ├── routing_metrics.py
 │   ├── task_success_rate.py
 │   ├── intent_results.csv
+│   ├── intent_results_v2.csv
 │   ├── recommender_results.csv
+│   ├── baseline_vs_critic_results.csv
 │   ├── response_times.csv
 │   ├── routing_confusion_matrix.csv
+│   ├── routing_confusion_matrix_v2.csv
 │   └── task_success_results.csv
 │
 ├── recommender/
@@ -340,12 +388,13 @@ streamlit run frontend.py
 
 Possible future developments include:
 
-* integration of real Neural Collaborative Filtering models;
-* larger educational datasets;
-* hybrid recommendation strategies;
-* multilingual support;
-* automatic evaluation of the Web Agent;
-* user profile personalization.
+* expanding the Recommendation Agent benchmark, currently limited to 7 usable queries;
+* integrating a dedicated vector database (e.g. ChromaDB) for retrieval scalability on larger datasets;
+* enriching the Intent Agent's few-shot examples to improve generalization on non-technical domains;
+* complementing automatic metrics with a user study (Likert-scale questionnaire);
+* integration of a real Neural Collaborative Filtering model, should a persistent user-item interaction history become available;
+* automatic (rather than manual) evaluation of the Web Search Agent;
+* multilingual support and user profile personalization.
 
 ---
 
