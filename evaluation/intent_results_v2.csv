@@ -1,0 +1,100 @@
+query,expected,predicted,correct
+vorrei imparare python,BOTH,BOTH,True
+cerco un libro su java,BOTH,BOTH,True
+libri di programmazione,BOTH,BOTH,True
+computer networks,BOTH,BOTH,True
+linux programming,BOTH,BOTH,True
+database,BOTH,BOTH,True
+machine learning,BOTH,BOTH,True
+cerca siti per imparare python,BOTH,BOTH,True
+consigliami un libro su JavaScript,BOTH,BOTH,True
+vorrei imparare a programmare in C++,BOTH,BOTH,True
+un libro sull'intelligenza artificiale,BOTH,BOTH,True
+libri su sicurezza informatica,BOTH,BOTH,True
+consigliami un libro di narrativa,BOTH,CHAT,False
+vorrei un libro di cucina italiana,BOTH,BOTH,True
+libri di viaggio da leggere,BOTH,BOTH,True
+cerco ricette vegetariane,BOTH,WEB_SEARCH,False
+un libro sulla storia dell'arte,BOTH,BOTH,True
+vorrei imparare a suonare la chitarra,BOTH,BOTH,True
+libri per imparare l'inglese,BOTH,BOTH,True
+consigliami un romanzo giallo,BOTH,CHAT,False
+libri di marketing digitale,BOTH,BOTH,True
+vorrei un libro sulla fotografia,BOTH,BOTH,True
+cerco libri di psicologia,BOTH,BOTH,True
+libri sulla gestione del tempo,BOTH,BOTH,True
+un libro di poesie,BOTH,BOTH,True
+consigliami un libro di fantascienza,BOTH,CHAT,False
+libri per imparare a disegnare,BOTH,BOTH,True
+vorrei un libro sull'imprenditoria,BOTH,BOTH,True
+libri di giardinaggio,BOTH,BOTH,True
+un libro sulla mindfulness,BOTH,BOTH,True
+cerco libri di filosofia,BOTH,BOTH,True
+libri per bambini sull'educazione linguistica,BOTH,BOTH,True
+consigliami un libro di economia,BOTH,BOTH,True
+libri sullo yoga,BOTH,BOTH,True
+vorrei un libro di ricette dolci,BOTH,WEB_SEARCH,False
+libri sul benessere mentale,BOTH,BOTH,True
+un romanzo storico da leggere,BOTH,WEB_SEARCH,False
+libri di divulgazione scientifica,BOTH,BOTH,True
+consigliami un libro sul design,BOTH,BOTH,True
+libri sulla leadership,BOTH,BOTH,True
+vorrei un libro di autobiografie,BOTH,BOTH,True
+libri sull'alimentazione sana,BOTH,BOTH,True
+un libro sulla fisica quantistica,BOTH,BOTH,True
+libri di crescita personale,BOTH,BOTH,True
+ciao,CHAT,CHAT,True
+come stai?,CHAT,CHAT,True
+buongiorno,CHAT,CHAT,True
+buonasera,CHAT,CHAT,True
+grazie mille,CHAT,CHAT,True
+a presto,CHAT,CHAT,True
+come ti chiami?,CHAT,CHAT,True
+chi sei?,CHAT,CHAT,True
+cosa sai fare?,CHAT,CHAT,True
+raccontami una barzelletta,CHAT,CHAT,True
+che tempo fa oggi?,CHAT,WEB_SEARCH,False
+che ore sono?,CHAT,CHAT,True
+quanto fa 2+2?,CHAT,CHAT,True
+mi annoio,CHAT,CHAT,True
+sono stanco oggi,CHAT,CHAT,True
+che giorno è oggi?,CHAT,CHAT,True
+sei un'intelligenza artificiale?,CHAT,CHAT,True
+come funzioni?,CHAT,BOTH,False
+puoi aiutarmi?,CHAT,BOTH,False
+cosa ne pensi della pizza con l'ananas?,CHAT,CHAT,True
+raccontami qualcosa di divertente,CHAT,CHAT,True
+hai un colore preferito?,CHAT,CHAT,True
+ti piace la musica?,CHAT,CHAT,True
+come si dice grazie in inglese?,CHAT,CHAT,True
+sai ballare?,CHAT,CHAT,True
+quanti anni hai?,CHAT,CHAT,True
+dove abiti?,CHAT,CHAT,True
+cosa mi consigli di fare oggi pomeriggio?,CHAT,CHAT,True
+fa freddo oggi?,CHAT,WEB_SEARCH,False
+buona giornata,CHAT,CHAT,True
+cerca sul web informazioni sui cambiamenti climatici,WEB_SEARCH,WEB_SEARCH,True
+cerca online notizie di attualità,WEB_SEARCH,WEB_SEARCH,True
+puoi cercarmi qualcosa su internet riguardo l'intelligenza artificiale?,WEB_SEARCH,WEB_SEARCH,True
+fai una ricerca web su Kubernetes,WEB_SEARCH,WEB_SEARCH,True
+cerca siti che parlano di sostenibilità ambientale,WEB_SEARCH,WEB_SEARCH,True
+trova articoli recenti sull'economia italiana,WEB_SEARCH,WEB_SEARCH,True
+cerca su internet il meteo di domani a Milano,WEB_SEARCH,WEB_SEARCH,True
+cerca risorse online su database distribuiti,WEB_SEARCH,WEB_SEARCH,True
+fammi una ricerca sul web riguardo la storia di Roma,WEB_SEARCH,WEB_SEARCH,True
+cerca informazioni aggiornate sulle criptovalute,WEB_SEARCH,WEB_SEARCH,True
+trova siti web su ricette vegane,WEB_SEARCH,WEB_SEARCH,True
+cerca su internet chi ha vinto i mondiali di calcio,WEB_SEARCH,WEB_SEARCH,True
+fai una ricerca online su come funziona il motore di un'auto elettrica,WEB_SEARCH,WEB_SEARCH,True
+cerca articoli recenti sulla space economy,WEB_SEARCH,WEB_SEARCH,True
+trova pagine web sulla storia dell'arte rinascimentale,WEB_SEARCH,WEB_SEARCH,True
+cerca sul web tutorial per imparare a programmare in Rust,WEB_SEARCH,BOTH,False
+fammi una ricerca su internet riguardo le energie rinnovabili,WEB_SEARCH,WEB_SEARCH,True
+cerca notizie di oggi sulla borsa,WEB_SEARCH,WEB_SEARCH,True
+trova siti che parlano di viaggi in Giappone,WEB_SEARCH,WEB_SEARCH,True
+cerca online informazioni sul cambiamento climatico in Italia,WEB_SEARCH,WEB_SEARCH,True
+fai una ricerca web sulle ultime scoperte scientifiche,WEB_SEARCH,WEB_SEARCH,True
+cerca su internet la biografia di Leonardo da Vinci,WEB_SEARCH,WEB_SEARCH,True
+trova articoli aggiornati sulla sicurezza informatica,WEB_SEARCH,WEB_SEARCH,True
+cerca sul web strumenti per il project management,WEB_SEARCH,WEB_SEARCH,True
+fammi una ricerca online sulle startup italiane,WEB_SEARCH,WEB_SEARCH,True

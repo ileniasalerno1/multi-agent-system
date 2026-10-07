@@ -1,0 +1,100 @@
+query,intent
+vorrei imparare python,BOTH
+cerco un libro su java,BOTH
+libri di programmazione,BOTH
+computer networks,BOTH
+linux programming,BOTH
+database,BOTH
+machine learning,BOTH
+cerca siti per imparare python,BOTH
+consigliami un libro su JavaScript,BOTH
+vorrei imparare a programmare in C++,BOTH
+un libro sull'intelligenza artificiale,BOTH
+libri su sicurezza informatica,BOTH
+consigliami un libro di narrativa,BOTH
+vorrei un libro di cucina italiana,BOTH
+libri di viaggio da leggere,BOTH
+cerco ricette vegetariane,BOTH
+un libro sulla storia dell'arte,BOTH
+vorrei imparare a suonare la chitarra,BOTH
+libri per imparare l'inglese,BOTH
+consigliami un romanzo giallo,BOTH
+libri di marketing digitale,BOTH
+vorrei un libro sulla fotografia,BOTH
+cerco libri di psicologia,BOTH
+libri sulla gestione del tempo,BOTH
+un libro di poesie,BOTH
+consigliami un libro di fantascienza,BOTH
+libri per imparare a disegnare,BOTH
+vorrei un libro sull'imprenditoria,BOTH
+libri di giardinaggio,BOTH
+un libro sulla mindfulness,BOTH
+cerco libri di filosofia,BOTH
+libri per bambini sull'educazione linguistica,BOTH
+consigliami un libro di economia,BOTH
+libri sullo yoga,BOTH
+vorrei un libro di ricette dolci,BOTH
+libri sul benessere mentale,BOTH
+un romanzo storico da leggere,BOTH
+libri di divulgazione scientifica,BOTH
+consigliami un libro sul design,BOTH
+libri sulla leadership,BOTH
+vorrei un libro di autobiografie,BOTH
+libri sull'alimentazione sana,BOTH
+un libro sulla fisica quantistica,BOTH
+libri di crescita personale,BOTH
+ciao,CHAT
+come stai?,CHAT
+buongiorno,CHAT
+buonasera,CHAT
+grazie mille,CHAT
+a presto,CHAT
+come ti chiami?,CHAT
+chi sei?,CHAT
+cosa sai fare?,CHAT
+raccontami una barzelletta,CHAT
+che tempo fa oggi?,CHAT
+che ore sono?,CHAT
+quanto fa 2+2?,CHAT
+mi annoio,CHAT
+sono stanco oggi,CHAT
+che giorno è oggi?,CHAT
+sei un'intelligenza artificiale?,CHAT
+come funzioni?,CHAT
+puoi aiutarmi?,CHAT
+cosa ne pensi della pizza con l'ananas?,CHAT
+raccontami qualcosa di divertente,CHAT
+hai un colore preferito?,CHAT
+ti piace la musica?,CHAT
+come si dice grazie in inglese?,CHAT
+sai ballare?,CHAT
+quanti anni hai?,CHAT
+dove abiti?,CHAT
+cosa mi consigli di fare oggi pomeriggio?,CHAT
+fa freddo oggi?,CHAT
+buona giornata,CHAT
+cerca sul web informazioni sui cambiamenti climatici,WEB_SEARCH
+cerca online notizie di attualità,WEB_SEARCH
+puoi cercarmi qualcosa su internet riguardo l'intelligenza artificiale?,WEB_SEARCH
+fai una ricerca web su Kubernetes,WEB_SEARCH
+cerca siti che parlano di sostenibilità ambientale,WEB_SEARCH
+trova articoli recenti sull'economia italiana,WEB_SEARCH
+cerca su internet il meteo di domani a Milano,WEB_SEARCH
+cerca risorse online su database distribuiti,WEB_SEARCH
+fammi una ricerca sul web riguardo la storia di Roma,WEB_SEARCH
+cerca informazioni aggiornate sulle criptovalute,WEB_SEARCH
+trova siti web su ricette vegane,WEB_SEARCH
+cerca su internet chi ha vinto i mondiali di calcio,WEB_SEARCH
+fai una ricerca online su come funziona il motore di un'auto elettrica,WEB_SEARCH
+cerca articoli recenti sulla space economy,WEB_SEARCH
+trova pagine web sulla storia dell'arte rinascimentale,WEB_SEARCH
+cerca sul web tutorial per imparare a programmare in Rust,WEB_SEARCH
+fammi una ricerca su internet riguardo le energie rinnovabili,WEB_SEARCH
+cerca notizie di oggi sulla borsa,WEB_SEARCH
+trova siti che parlano di viaggi in Giappone,WEB_SEARCH
+cerca online informazioni sul cambiamento climatico in Italia,WEB_SEARCH
+fai una ricerca web sulle ultime scoperte scientifiche,WEB_SEARCH
+cerca su internet la biografia di Leonardo da Vinci,WEB_SEARCH
+trova articoli aggiornati sulla sicurezza informatica,WEB_SEARCH
+cerca sul web strumenti per il project management,WEB_SEARCH
+fammi una ricerca online sulle startup italiane,WEB_SEARCH
