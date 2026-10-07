@@ -271,7 +271,7 @@ def filter_recommendations_llm(user_query, recommendations):
         }
 
     # =========================
-    # 🔹 recommendation NCF - Marta
+    # 🔹 RECOMMENDATION AGENT: retrieval semantico + validazione
     # =========================
 
 def recommendation_agent(query):
@@ -298,7 +298,7 @@ def critic_agent(user_query, web_results, intent, recommendations):
     Richiesta utente:
     {user_query}
 
-    Risorse NCF:
+    Risorse dal dataset:
     {recommendations}
 
     Risultati Web:
@@ -317,7 +317,7 @@ def critic_agent(user_query, web_results, intent, recommendations):
     - non numerare risultati
 
     Se intent = BOTH:
-    valuta le risorse NCF.
+    valuta le risorse dal dataset.
 
     Se intent = WEB_SEARCH:
     valuta i risultati Web.
@@ -522,11 +522,20 @@ app = graph.compile()
 # =========================
 
 def build_agents_used(result):
+    """
+    Ricostruisce l'elenco degli agenti effettivamente attraversati,
+    in base all'intento classificato e ai risultati presenti nello stato.
+    """
 
-    agents = []
+    agents = ["INTENT"]
 
-    if result.get("recommendations"):
-        agents.append("NCF")
+    intent = result.get("intent", "CHAT")
+
+    if intent == "BOTH":
+        agents.append("RECOMMENDER")
+
+    if result.get("web_results"):
+        agents.append("WEB")
 
     agents.append("CRITIC")
 
@@ -548,10 +557,10 @@ def run_agent(user_input, history):
         "assistant": result["final_output"]
     })
 
-    needs_web_search = result.get(
-        "recommendations_found",
-        False
-    )
+    # L'approfondimento web viene proposto per tutte le richieste di
+    # raccomandazione (intento BOTH): sia quando il dataset ha restituito
+    # risorse pertinenti, sia - soprattutto - quando non ne ha trovate.
+    needs_web_search = result.get("intent") == "BOTH"
 
     return {
         "response": result["final_output"],
@@ -577,7 +586,7 @@ def run_web_search(user_query):
     return {
         "response": response,
         "web_results": web_results,
-        "agents_used": ["WEB", "CRITIC"]
+        "agents_used": ["QUERY", "WEB", "CRITIC"]
     }
 
 

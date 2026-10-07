@@ -72,8 +72,14 @@ for msg in st.session_state.messages:
 
                 color = "#475569"
 
-                if agent == "NCF":
+                if agent == "INTENT":
+                    color = "#7c3aed"
+
+                elif agent == "RECOMMENDER":
                     color = "#2563eb"
+
+                elif agent == "QUERY":
+                    color = "#0891b2"
 
                 elif agent == "WEB":
                     color = "#ca8a04"
